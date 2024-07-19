@@ -10,8 +10,26 @@ AV_GPS_TOPIC = os.getenv('AV_GPS_TOPIC', 'av_gpa_data')
 LIVE_STOCK_SENSOR_TOPIC = os.getenv('LIVE_STOCK_SENSOR_TOPIC', 'live_stock_sensor_data')
 DRONE_TOPIC = os.getenv('DRONE_TOPIC', 'drone_data')
 
+def generate_soil_moisture_data():
+    
+    
+
+def simulate_smart_farm(producer, sensor_id):
+    while True:
+        soil_moisture_data = generate_soil_moisture_data(sensor_id)
+
+
 if __name__ = "__main__":
     producer_config = {
         'bootstrap.servers': KAFKA_BOOTSTRAP_SERVERS,
         'error_cb': lambda err: print(f'Kafka error: {err}')
     }
+
+    producer = SerializingProducer(producer_config)
+
+    try:
+        simulate_smart_farm(producer, 'smart-farm')
+    except KeyboardInterrupt:
+        print('simulation ended by the user')
+    except Exception as e:
+        print(f'Unexpected error occured: {e}')
