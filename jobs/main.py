@@ -4,12 +4,14 @@ import simplejson as json
 from datetime import datetime, timedelta
 import random 
 import uuid
+import json 
+import time
 
 KAFKA_BOOTSTRAP_SERVERS = os.getenv('KAFKA_BOOTSTRAP_SERVERS', 'localhost:9092')
 SOIL_MOISTURE_SENSOR_TOPIC = os.getenv('SOIL_MOISTURE_SENSOR_TOPIC', 'soil_moisture_data')
 TEMPERATURE_AND_LIGHT_SENSOR_TOPIC = os.getenv('TEMPERATURE_AND_LIGHT_SENSOR_TOPIC', 'temperature_light_data')
 IRRIGATION_WATER_SENSOR_TOPIC = os.getenv('IRRIGATION_WATER_SENSOR_TOPIC', 'irrigation_water_data')
-AV_GPS_TOPIC = os.getenv('AV_GPS_TOPIC', 'av_gpa_data')
+AV_GPS_TOPIC = os.getenv('AV_GPS_TOPIC', 'av_gps_data')
 LIVE_STOCK_SENSOR_TOPIC = os.getenv('LIVE_STOCK_SENSOR_TOPIC', 'live_stock_sensor_data')
 DRONE_TOPIC = os.getenv('DRONE_TOPIC', 'drone_data')
 
@@ -31,7 +33,7 @@ def generate_soil_moisture_data():
     return {
         'id': uuid.uuid4(),
         'sensorId': sensor_id,
-        'timestamp': get_next_time().isoformat,
+        'timestamp': get_next_time().isoformat(),
         'location': (location['latitude'], location['longitude']),
         'moisturePercentage': random.randrange(20, 60, 1),
         'company': 'smart_sensor',
@@ -45,7 +47,7 @@ def generate_light_temp_data():
     return {
         'id': uuid.uuid4(),
         'sensorId': sensor_id,
-        'timestamp': get_next_time().isoformat,
+        'timestamp': get_next_time().isoformat(),
         'location': (location['latitude'], location['longitude']),
         'airTemperature': random.randrange(0, 90, 1),
         'soilTemperature': random.randrange(0, 60, 1),
@@ -64,7 +66,7 @@ def generate_irrigation_water_data():
     return {
         'id': uuid.uuid4(),
         'sensorId': sensor_id,
-        'timestamp': get_next_time().isoformat,
+        'timestamp': get_next_time().isoformat(),
         'location': (location['latitude'], location['longitude']),
         'soilWaterPotential': random.randrange(0, 90, 1),
         'rainfallAmount': random.randrange(0, 60, 1),
@@ -81,7 +83,7 @@ def generate_av_gps_data():
     return {
         'id': uuid.uuid4(),
         'sensorId': sensor_id,
-        'timestamp': get_next_time().isoformat,
+        'timestamp': get_next_time().isoformat(),
         'location': (location['latitude'], location['longitude']),
         'company': 'smart_sensor',
         'model': 'T230',
@@ -94,7 +96,7 @@ def generate_livestock_sensor_data():
     return {
         'id': uuid.uuid4(),
         'sensorId': sensor_id,
-        'timestamp': get_next_time().isoformat,
+        'timestamp': get_next_time().isoformat(),
         'location': (location['latitude'], location['longitude']),
         'bodyTemperature': random.randrange(0, 90, 1),
         'heartRate': random.randrange(0, 60, 1),
@@ -111,7 +113,7 @@ def generate_drone_data():
     return {
         'id': uuid.uuid4(),
         'sensorId': sensor_id,
-        'timestamp': get_next_time().isoformat,
+        'timestamp': get_next_time().isoformat(),
         'location': (location['latitude'], location['longitude']),
         'aerialImagesLocation': 'cloudStorage/location',
         'thermalImaging': 'cloudStorage/location',
@@ -122,6 +124,26 @@ def generate_drone_data():
         'year': random.randrange(2010, 2024, 1)
     }
 
+def json_serializer(obj):
+    if isinstance(obj, uuid.UUID):
+        return str(obj)
+    raise TypeError(f'Object of type {obj.__class__.__name__} is not JSON serializable')
+
+def delivery_report(err, msg):
+    if err is not None:
+        print(f'Message delivey failed: {err}')
+    else:
+        print(f'Message delivered to {msg.topic()} [{msg.partition()}]')
+
+def produce_data_to_kafka(producer, topic, data):
+    producer.produce(
+        topic, 
+        key=str(data['id']),
+        value=json.dumps(data, default=json_serializer).encode('utf-8'),
+        on_delivery=delivery_report
+    )
+
+    producer.flush()
 
 def simulate_smart_farm(producer):
     while True:
@@ -135,10 +157,11 @@ def simulate_smart_farm(producer):
         produce_data_to_kafka(producer, SOIL_MOISTURE_SENSOR_TOPIC, soil_moisture_data)
         produce_data_to_kafka(producer, TEMPERATURE_AND_LIGHT_SENSOR_TOPIC, temp_light_data)
         produce_data_to_kafka(producer, IRRIGATION_WATER_SENSOR_TOPIC, irrigation_water_data)
-        produce_data_to_kafka(producer, AV_GPS_TOPIC, av_gpa_data)
+        produce_data_to_kafka(producer, AV_GPS_TOPIC, av_gps_data)
         produce_data_to_kafka(producer, LIVE_STOCK_SENSOR_TOPIC, live_stock_sensor_data)
         produce_data_to_kafka(producer, DRONE_TOPIC, drone_data)
-        break
+        
+        time.sleep(5)
 
 if __name__ == "__main__":
     producer_config = {
