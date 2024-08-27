@@ -26,7 +26,6 @@ def simulate_sensor_location():
     sensor_location['longitude'] = random.uniform(0.005, 0.005)
     return sensor_location
 
-
 def generate_soil_moisture_data():
     sensor_id = random.randrange(1, 9999, 1)
     location = simulate_sensor_location()
